@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  mongo: 
+    image: mongo:latest
+    container_name: mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"   # mappe le port MongoDB local à celui du container
+    volumes:
+      - mongo-data:/data/db  # persistance des données
+  
+volumes: 
+  mongo-data:
+   
