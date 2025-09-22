@@ -33,7 +33,7 @@ model_data/model-label/*.pkl
 # =========================
 # NOTEBOOKS CHECKPOINTS
 # =========================
-*.ipynb_checkpoints/
+*.ipynb_checkpoints/ 
 
 # =========================
 # LOGS
