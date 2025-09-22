@@ -45,8 +45,12 @@ def admin_required(f):
     return token_required(decorated)
 
 # ----------------- ROUTES --------------------------------------------------------------
-@auth_bp.route('/login', methods=['POST']) 
+@auth_bp.route('/login', methods=['POST', 'OPTIONS'])
 def login():
+    # 👉 Réponse rapide au préflight CORS
+    if request.method == 'OPTIONS':
+        return jsonify({'success': True}), 200
+
     data = request.get_json()
     email = data.get('email', '').strip().lower()
     password = data.get('password', '')
@@ -84,6 +88,7 @@ def login():
             'role': user_role
         }
     }), 200
+  
 
 @auth_bp.route('/verify', methods=['GET'])
 @token_required
