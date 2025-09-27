@@ -1,14 +1,22 @@
 # register.py
 from flask import Blueprint, request, jsonify
+from flask_cors import CORS, cross_origin
 from werkzeug.security import generate_password_hash
 from db import Database
 import re
 
 register_bp = Blueprint('register', __name__)
+CORS(register_bp)  # Ajouter CORS au blueprint
 
-@register_bp.route('/api/register', methods=['POST'])
+@register_bp.route('', methods=['POST', 'OPTIONS'])  # ✅ Enlevé le slash final
+@register_bp.route('/', methods=['POST', 'OPTIONS'])  # ✅ Ajouté avec slash pour compatibilité
+@cross_origin()
 def register():
     try:
+        # Gérer les requêtes OPTIONS (CORS preflight)
+        if request.method == 'OPTIONS':
+            return jsonify({'success': True}), 200
+
         data = request.get_json()
         print(f"📝 Données reçues pour inscription: {data}")
         
@@ -48,7 +56,7 @@ def register():
                 'message': 'Cet email est déjà utilisé'
             }), 400
 
-        # CORRECTION: Hasher le mot de passe avec pbkdf2 explicitement
+        # Hasher le mot de passe avec pbkdf2 explicitement
         hashed_password = generate_password_hash(data['password'], method='pbkdf2:sha256')
         print(f"🔐 Mot de passe hashé avec pbkdf2:sha256")
 
@@ -61,11 +69,10 @@ def register():
             'pays': data['pays'].strip(),
             'codePostal': data['codePostal'].strip(),
             'password': hashed_password,
-            'role': 'user'  # ⭐ TOUJOURS 'user' pour les nouveaux comptes
+            'role': 'user'  # Toujours 'user' pour les nouveaux comptes
         }
 
         print(f"👤 Création utilisateur avec rôle: '{new_user['role']}'")
-        print(f"🔐 Hash généré: {hashed_password[:50]}...")
 
         # Insérer le nouvel utilisateur
         result = users_collection.insert_one(new_user)
@@ -73,7 +80,7 @@ def register():
 
         print(f"✅ Utilisateur créé avec ID: {user_id}")
 
-        # AJOUT: Test de vérification pour s'assurer que le hash fonctionne
+        # Test de vérification pour s'assurer que le hash fonctionne
         from werkzeug.security import check_password_hash
         test_verification = check_password_hash(hashed_password, data['password'])
         print(f"🧪 Test vérification hash: {'✅ OK' if test_verification else '❌ ECHEC'}")

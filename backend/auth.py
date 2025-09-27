@@ -101,14 +101,14 @@ def verify(current_user):
         'role': current_user['role']
     }}), 200
 
-@auth_bp.route('/profile', methods=['GET'])
+@auth_bp.route('/profile', methods=['GET'])  
 @token_required
 def profile(current_user):
     return jsonify({'success': True, 'user': {
-        'id': str(current_user['_id']),
+        'id': str(current_user['_id']), 
         'nom': current_user.get('nom', ''),
         'prenom': current_user.get('prenom', ''),
-        'email': current_user['email'],
+        'email': current_user['email'], 
         'role': current_user['role']
     }}), 200
  

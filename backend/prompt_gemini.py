@@ -1,26 +1,21 @@
 import google.generativeai as genai
 import os
 from flask import Blueprint, request, jsonify
+from flask_cors import CORS, cross_origin
 from auth import token_required
  
 # Configuration de la clé API
-GOOGLE_API_KEY = 'AIzaSyDy45E9YOGHO9jZ6QOEjLScxW83enGRUcI'
+   
+GOOGLE_API_KEY = 'AIzaSyDy45E9YOGHO9jZ6QOEjLScxW83enGRUcI' 
 genai.configure(api_key=GOOGLE_API_KEY)
-
-# Créer le blueprint pour les routes Gemini
+ 
+# Créer le blueprint pour les routes Gemini SANS préfixe (car ajouté dans app.py)
 gemini_bp = Blueprint('gemini', __name__)
+CORS(gemini_bp)  # Activer CORS pour ce blueprint
 
 def generate_agricultural_advice(form_data: dict, irrigation_prediction: str, crop_prediction: str) -> str:
     """
     Génère des conseils agricoles personnalisés avec Gemini LLM.
-    
-    Args:
-        form_data (dict): Données du formulaire agricole
-        irrigation_prediction (str): Prédiction d'irrigation (Oui/Non)
-        crop_prediction (str): Culture recommandée
-    
-    Returns:
-        str: Conseils agricoles générés par IA
     """
     
     # Construction du prompt contextualisé
@@ -58,36 +53,41 @@ Tu es un expert agronome AI. Analyse ces données agricoles et génère des cons
    - Surveillance des maladies
    - Optimisation du rendement
 
-4. ⚠️ ALERTES & RECOMMANDATIONS
+4. ⚠️ ALERTES & RECOMMANDATIONS 
    - Points d'attention selon tes conditions
    - Actions prioritaires cette semaine
 
-Réponds de manière concise, pratique et directement applicable. Maximum 400 mots.
+Réponds de manière concise, pratique et directement applicable. Maximum 400 mots. parale badrija de manier simple  
 """
 
     try:
         # Initialiser le modèle Gemini
-        model = genai.GenerativeModel("gemini-1.5-flash")
-        
+        model = genai.GenerativeModel("gemini-2.0-flash")
+             
         # Générer la réponse
-        response = model.generate_content(prompt)
+        response = model.generate_content(prompt)  
         
-        if response and response.text:
+        if response and response.text: 
             return response.text.strip()
-        else:
+        else:     
             return "Désolé, impossible de générer des conseils pour le moment. Veuillez réessayer."
-            
+              
     except Exception as e:
         print(f"❌ Erreur Gemini API: {e}")
         return f"Erreur lors de la génération des conseils: {str(e)}"
 
-@gemini_bp.route('/api/gemini-advice', methods=['POST'])
+@gemini_bp.route('/gemini-advice', methods=['POST', 'OPTIONS'])
+@cross_origin()
 @token_required
 def get_gemini_advice(current_user):
     """
     Endpoint pour obtenir les conseils agricoles de Gemini
     """
     try:
+        # Gérer les requêtes OPTIONS (preflight CORS)
+        if request.method == 'OPTIONS':
+            return jsonify({'success': True}), 200
+            
         # Récupérer les données de la requête
         data = request.get_json()
         
@@ -139,34 +139,23 @@ def get_gemini_advice(current_user):
             'error': 'Erreur serveur lors de la génération des conseils'
         }), 500
 
-# Fonction de test (optionnelle)
-def test_gemini_advice():
-    """
-    Fonction de test pour vérifier le bon fonctionnement
-    """
+# Test optionnel
+if __name__ == "__main__":     
+    # Tester la fonction  
     sample_data = {
         "Nitrogen": 45,
         "phosphorous": 35,
         "Potassium": 40,
-        "temperature": 22,
-        "humidity": 65,
-        "ph": 6.8,
+        "temperature": 22, 
+        "humidity": 65,  
+        "ph": 6.8,  
         "Rainfall_Mensuel": 75,
-        "Rainfall_Annuel": 850
+        "Rainfall_Annuel": 850 
     }
-        
+         
     advice = generate_agricultural_advice(sample_data, "Oui", "tomate") 
     print("\n" + "="*50)
     print("🧪 TEST CONSEILS GEMINI")
     print("="*50)
     print(advice)
-    print("="*50)   
-   
-if __name__ == "__main__":     
-    # Tester la fonction  
-    test_gemini_advice()      
-       
-
-
-
-        
+    print("="*50)  

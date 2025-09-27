@@ -3,228 +3,276 @@ from pymongo import MongoClient
 import pymongo
 from datetime import datetime
 
+# Connexion globale pour réutiliser la même connexion
+_global_client = None
+_global_db = None
+
 class Database:
     def __init__(self, uri="mongodb://localhost:27017/", db_name="basejwt"):
         """
-        Initialise la connexion à MongoDB avec gestion d'erreurs améliorée
+        Initialise la connexion à MongoDB avec pattern singleton
         """
+        global _global_client, _global_db
         self.uri = uri
         self.db_name = db_name
-        self.client = None
-        self.db = None
-        
+
+        # Réutiliser la connexion existante si disponible
+        if _global_client is not None:
+            try:
+                _global_client.admin.command('ping')
+                self.client = _global_client
+                self.db = _global_db
+                print("✅ Réutilisation connexion MongoDB existante")
+                return
+            except Exception as e:
+                print(f"⚠️ Connexion globale invalide, recréation: {e}")
+                _global_client = None
+                _global_db = None
+
+        # Nouvelle connexion MongoDB
         try:
-            # Connexion avec timeout
             self.client = MongoClient(
-                uri, 
-                serverSelectionTimeoutMS=5000,  # Timeout de 5 secondes
-                connectTimeoutMS=10000,         # Timeout de connexion
-                socketTimeoutMS=10000           # Timeout de socket
+                uri,
+                serverSelectionTimeoutMS=5000,  # 5 secondes
+                connectTimeoutMS=10000,         # 10 secondes
+                socketTimeoutMS=10000,          # 10 secondes
+                maxPoolSize=20,                 # Pool de connexions
+                minPoolSize=5,
+                retryWrites=True
             )
             
-            # Sélection de la base de données
             self.db = self.client[db_name]
             
             # Test de connexion
             self.client.admin.command('ping')
-            print(f"✅ Connexion réussie à MongoDB")
-            print(f"📊 Base de données: '{db_name}'")
-            print(f"🔗 URI: {uri}")
-            
-            # Initialisation des collections et indexes
+            print(f"✅ Nouvelle connexion MongoDB établie: '{db_name}'")
+
+            # Sauvegarder globalement
+            _global_client = self.client
+            _global_db = self.db
+
+            # Configuration des collections
             self._setup_collections()
             
         except Exception as e:
-            print(f"❌ Erreur de connexion MongoDB : {e}")
+            print(f"❌ Erreur connexion MongoDB: {e}")
             self.client = None
             self.db = None
-            
+
     def _setup_collections(self):
-        """
-        Configuration des collections et création des index
-        """
-        try:
-            if self.db is None:
-                return
-                
-            # Collection des utilisateurs
-            users_collection = self.db['users']
-            # Index unique sur email
-            try:
-                users_collection.create_index("email", unique=True)
-                print("📋 Collection 'users' configurée avec index unique sur 'email'")
-            except Exception as e:
-                print(f"⚠️ Index 'users' déjà existant ou erreur: {e}")
+        """Configuration automatique des collections et index"""
+        if self.db is None:
+            return
             
-            # Collection des prédictions
-            predictions_collection = self.db['predictions']
-            # Index composé pour optimiser les requêtes
+        try:
+            # Collection users
+            users = self.db['users']
             try:
-                predictions_collection.create_index([
-                    ("id_agriculteur", pymongo.ASCENDING),
+                users.create_index("email", unique=True)
+                print("📋 Index unique sur 'email' configuré")
+            except Exception:
+                pass  # Index existe déjà
+
+            # Collection predictions
+            predictions = self.db['predictions']
+            try:
+                predictions.create_index([
+                    ("email_agriculteur", pymongo.ASCENDING),
                     ("date_prediction", pymongo.DESCENDING)
                 ])
-                # Index sur email pour les recherches
-                predictions_collection.create_index("email_agriculteur")
-                print("📋 Collection 'predictions' configurée avec index composé")
-            except Exception as e:
-                print(f"⚠️ Index 'predictions' déjà existant ou erreur: {e}")
-            
-            # Affichage des collections existantes
+                print("📋 Index composé predictions configuré")
+            except Exception:
+                pass  # Index existe déjà
+
             collections = self.db.list_collection_names()
-            print(f"📚 Collections disponibles: {collections}")
+            print(f"📚 Collections: {collections}")
             
         except Exception as e:
-            print(f"⚠️ Erreur configuration collections: {e}")
-    
-    def get_collection(self, collection_name):
-        """
-        Retourne une collection spécifique avec vérification - CORRIGÉ
-        """
+            print(f"⚠️ Erreur setup collections: {e}")
+
+    def get_collection(self, name):
+        """Récupère une collection MongoDB"""
         if self.db is None:
-            print(f"❌ Base de données non connectée")
+            print("❌ Base de données non connectée")
             return None
             
         try:
-            collection = self.db[collection_name]
-            print(f"📂 Accès à la collection '{collection_name}'")
+            collection = self.db[name]
+            print(f"📂 Accès collection '{name}'")
             return collection
         except Exception as e:
-            print(f"❌ Erreur accès collection '{collection_name}': {e}")
+            print(f"❌ Erreur accès collection '{name}': {e}")
             return None
-    
+
     def test_connection(self):
-        """
-        Test de connexion et retour du statut
-        """
-        try:
-            if self.client is not None:
-                # Test ping
-                self.client.admin.command('ping')
-                
-                # Info serveur
-                server_info = self.client.server_info()
-                
-                return {
-                    'connected': True,
-                    'server_version': server_info.get('version', 'unknown'),
-                    'database': self.db_name,
-                    'collections': self.db.list_collection_names() if self.db is not None else []
-                }
-            else:
-                return {'connected': False, 'error': 'Client non initialisé'}
-                
-        except Exception as e:
-            return {'connected': False, 'error': str(e)}
-    
-    def get_database_stats(self):
-        """
-        Statistiques de la base de données
-        """
-        try:
-            if self.db is None:
-                return {'error': 'Base de données non connectée'}
+        """Test de santé de la connexion"""
+        if self.client is None:
+            return {'connected': False, 'error': 'Client non initialisé'}
             
-            stats = self.db.command("dbStats")
-            
-            # Comptage des documents par collection
-            collections_info = {}
-            for collection_name in self.db.list_collection_names():
-                count = self.db[collection_name].count_documents({})
-                collections_info[collection_name] = count
+        try:
+            self.client.admin.command('ping')
+            server_info = self.client.server_info()
             
             return {
-                'database_name': self.db_name,
-                'collections': collections_info,
-                'total_size_bytes': stats.get('dataSize', 0),
-                'total_documents': sum(collections_info.values()),
-                'indexes': stats.get('indexes', 0),
-                'storage_size_bytes': stats.get('storageSize', 0)
+                'connected': True,
+                'server_version': server_info.get('version', 'unknown'),
+                'database': self.db_name,
+                'collections': self.db.list_collection_names() if self.db else []
+            }
+        except Exception as e:
+            return {'connected': False, 'error': str(e)}
+
+    def create_user(self, user_data):
+        """Créer un nouvel utilisateur"""
+        users = self.get_collection('users')
+        if users is None:
+            return {'success': False, 'error': 'Collection users inaccessible'}
+            
+        try:
+            # Vérifier si l'email existe
+            if users.find_one({'email': user_data.get('email')}):
+                return {'success': False, 'error': 'Email déjà utilisé'}
+            
+            # Ajouter timestamp
+            user_data['created_at'] = datetime.utcnow()
+            user_data['updated_at'] = datetime.utcnow()
+            
+            result = users.insert_one(user_data)
+            
+            return {
+                'success': True, 
+                'user_id': str(result.inserted_id),
+                'email': user_data.get('email')
             }
             
         except Exception as e:
-            return {'error': f'Erreur récupération stats: {str(e)}'}
-    
-    def create_user_if_not_exists(self, email, password_hash, name="", role="user"):
-        """
-        Crée un utilisateur s'il n'existe pas déjà
-        """
+            return {'success': False, 'error': str(e)}
+
+    def get_all_users(self, projection=None):
+        """Récupérer tous les utilisateurs"""
+        users = self.get_collection('users')
+        if users is None:
+            return {'success': False, 'error': 'Collection users inaccessible'}
+            
         try:
-            users_collection = self.get_collection('users')
-            if users_collection is None:
-                return {'success': False, 'error': 'Collection users inaccessible'}
-            
-            # Vérifier si l'utilisateur existe
-            existing_user = users_collection.find_one({'email': email})
-            if existing_user:
-                return {'success': False, 'error': 'Utilisateur déjà existant'}
-            
-            # Créer nouvel utilisateur
-            user_doc = {
-                'email': email,
-                'password': password_hash,
-                'name': name,
-                'role': role,
-                'created_at': datetime.utcnow(),
-                'last_login': None,
-                'is_active': True
-            }
-            
-            result = users_collection.insert_one(user_doc)
-            
-            if result.inserted_id:
-                return {
-                    'success': True, 
-                    'user_id': str(result.inserted_id),
-                    'email': email
+            if projection is None:
+                projection = {
+                    "_id": 1, "nom": 1, "prenom": 1, "email": 1,
+                    "ville": 1, "pays": 1, "codePostal": 1, "created_at": 1
                 }
-            else:
-                return {'success': False, 'error': 'Erreur création utilisateur'}
-                
+            
+            users_list = list(users.find({}, projection))
+            
+            # Transformer ObjectId en string
+            for user in users_list:
+                user["id"] = str(user["_id"])
+                del user["_id"]
+            
+            return {'success': True, 'users': users_list, 'total': len(users_list)}
+            
         except Exception as e:
-            return {'success': False, 'error': f'Erreur base de données: {str(e)}'}
-    
-    def update_last_login(self, user_id):
-        """
-        Met à jour la dernière connexion d'un utilisateur
-        """
+            return {'success': False, 'error': str(e)}
+
+    def get_user_by_id(self, user_id):
+        """Récupérer un utilisateur par son ID"""
+        from bson import ObjectId
+        users = self.get_collection('users')
+        if users is None:
+            return {'success': False, 'error': 'Collection users inaccessible'}
+            
         try:
-            from bson import ObjectId
-            users_collection = self.get_collection('users')
+            user = users.find_one({"_id": ObjectId(user_id)})
+            if not user:
+                return {'success': False, 'error': 'Utilisateur introuvable'}
             
-            if users_collection is None:
-                return False
+            user["id"] = str(user["_id"])
+            del user["_id"]
             
-            result = users_collection.update_one(
-                {'_id': ObjectId(user_id)},
-                {'$set': {'last_login': datetime.utcnow()}}
+            # Ne pas retourner le mot de passe
+            if "motDePasse" in user:
+                del user["motDePasse"]
+            if "password" in user:
+                del user["password"]
+            
+            return {'success': True, 'user': user}
+            
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+
+    def update_user(self, user_id, update_data):
+        """Mettre à jour un utilisateur"""
+        from bson import ObjectId
+        users = self.get_collection('users')
+        if users is None:
+            return {'success': False, 'error': 'Collection users inaccessible'}
+            
+        try:
+            # Ajouter timestamp de mise à jour
+            update_data['updated_at'] = datetime.utcnow()
+            
+            result = users.update_one(
+                {"_id": ObjectId(user_id)},
+                {"$set": update_data}
             )
             
-            return result.modified_count > 0
+            if result.matched_count == 0:
+                return {'success': False, 'error': 'Utilisateur introuvable'}
+            
+            return {'success': True, 'modified': result.modified_count > 0}
             
         except Exception as e:
-            print(f"Erreur update last_login: {e}")
-            return False
-    
-    def close_connection(self):
-        """
-        Ferme la connexion à MongoDB - CORRIGÉ
-        """
-        if self.client is not None:
-            try:
-                self.client.close()
-                print("🔌 Connexion MongoDB fermée")
-            except Exception as e:
-                print(f"⚠️ Erreur fermeture connexion: {e}")
-        else:
-            print("ℹ️ Aucune connexion active à fermer")
-    
-    def __del__(self):
-        """
-        Destructeur pour fermer automatiquement la connexion - CORRIGÉ
-        """
+            return {'success': False, 'error': str(e)}
+
+    def delete_user(self, user_id):
+        """Supprimer un utilisateur"""
+        from bson import ObjectId
+        users = self.get_collection('users')
+        if users is None:
+            return {'success': False, 'error': 'Collection users inaccessible'}
+            
         try:
-            if hasattr(self, 'client') and self.client is not None:
-                self.client.close()
-        except Exception:
-            pass  # Ignorer les erreurs dans le destructeur 
+            result = users.delete_one({"_id": ObjectId(user_id)})
+            
+            if result.deleted_count == 0:
+                return {'success': False, 'error': 'Utilisateur introuvable'}
+            
+            return {'success': True, 'deleted': True}
+            
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+
+    def get_user_stats(self):
+        """Statistiques des utilisateurs"""
+        users = self.get_collection('users')
+        if users is None:
+            return {'success': False, 'error': 'Collection users inaccessible'}
+            
+        try:
+            total = users.count_documents({})
+            
+            # Grouper par pays
+            pipeline = [
+                {"$group": {"_id": "$pays", "count": {"$sum": 1}}},
+                {"$sort": {"count": -1}},
+                {"$limit": 10}
+            ]
+            
+            by_country = list(users.aggregate(pipeline))
+            
+            return {
+                'success': True,
+                'total_users': total,
+                'by_country': by_country
+            }
+            
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+
+    def close_connection(self):
+        """Fermeture de connexion - maintient le singleton"""  
+        print("🔌 Connexion maintenue (pattern singleton)")    
+        # Ne ferme pas la connexion globale pour la réutiliser  
+
+    def __del__(self):
+        """Destructeur - ne ferme pas la connexion globale""" 
+        pass         
