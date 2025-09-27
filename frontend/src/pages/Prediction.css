@@ -1,4 +1,4 @@
-/* 🎯 Reset et styles de base */
+/* 🎯 Reset et styles de base */ 
 * {
   margin: 0;
   padding: 0;
@@ -13,15 +13,15 @@
   padding: 40px 20px;
   margin-top: 80px;
   margin-bottom: 60px;
-}
-
+} 
+ 
 /* ⚠️ Styles spécifiques pour éviter les conflits */
 .prediction-container {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;  
   background: linear-gradient(135deg, #2d5016 0%, #4a7c59 50%, #6b8e23 100%);
   min-height: calc(100vh - 140px);
   padding: 40px 20px;
-  margin-top: 80px;
+  margin-top: 80px; 
   margin-bottom: 60px;
 }
 
@@ -30,10 +30,8 @@
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   background: linear-gradient(135deg, #2d5016 0%, #4a7c59 50%, #6b8e23 100%);
   min-height: calc(100vh - 140px);
-  padding: 40px 20px 40px 300px; /* Padding-left pour le sidebar */
   margin-top: 80px;
-  margin-bottom: 60px;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  margin-bottom: 60px;   
 }
 
 /* 🎨 Layout à 3 colonnes : Formulaire | Résultats | Conseils IA */
@@ -411,7 +409,7 @@
 }
 
 /* 📊 Section Résultats (suite) */
-.prediction-results-title {
+.prediction-results-title { 
   font-size: 24px;
   font-weight: bold;
   color: #2d5016;
@@ -1277,7 +1275,7 @@
     background: linear-gradient(135deg, #1a2f0e 0%, #2d4a35 50%, #3d5a1a 100%);
   }
   
-  .prediction-form,
+  .prediction-form, 
   .prediction-results-section,
   .prediction-gemini-section,
   .prediction-history-table-container {
@@ -1397,3 +1395,10 @@
   visibility: visible;
   bottom: calc(100% + 5px);
 }  
+
+
+
+
+
+
+     

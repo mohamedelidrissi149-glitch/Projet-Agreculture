@@ -4,12 +4,12 @@ import Navbar from "../components/Navbar"; // Import du Navbar
 import Footer from "../components/Footer"; // Import du Footer
 import SidebarClient from "../components/SidebarClient"; // Import du nouveau Sidebar
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import {  
+import { 
   faFlask, faVial, faAtom, faThermometerHalf, faTint, faBalanceScale, 
   faCloudRain, faUmbrella, faSeedling, faMagic, faChartLine, faBrain, 
   faLeaf, faSave, faClock, faExclamationTriangle, faAppleAlt, faCarrot, 
   faPepperHot, faBreadSlice, faRobot, faLightbulb, faComments, faUser,
-  faTrash, faDroplet, faCalculator, faCalendarAlt, faDatabase, faCheckCircle
+  faTrash, faDroplet, faCalculator, faCalendarAlt, faSync
 } from '@fortawesome/free-solid-svg-icons';
 import { useNavigate } from 'react-router-dom';
 import axios from "axios";
@@ -35,27 +35,21 @@ const Prediction = () => {
   const [userData, setUserData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isGeminiLoading, setIsGeminiLoading] = useState(false);
+  const [isHistoryLoading, setIsHistoryLoading] = useState(false);
   
   // État pour gérer le sidebar
   const [activeSection, setActiveSection] = useState('prediction');
   
-  // États pour la sauvegarde automatique
-  const [savedToDB, setSavedToDB] = useState(false);
-  const [predictionId, setPredictionId] = useState(null);
-  
   const navigate = useNavigate();
 
-  // Historique chargé depuis la base de données
+  // Historique récupéré depuis la base de données
   const [historique, setHistorique] = useState([]);
-  const [historiqueLoading, setHistoriqueLoading] = useState(false);
-  
-  // Statistiques utilisateur
-  const [userStats, setUserStats] = useState({
-    totalAnalyses: 0,
-    irrigationOui: 0,
-    irrigationNon: 0,
-    pourcentageIrrigation: 0
-  });
+
+  // Calcul des statistiques
+  const totalAnalyses = historique.length;
+  const irrigationOui = historique.filter(item => item.besoin_irrigation === "Oui").length;
+  const irrigationNon = historique.filter(item => item.besoin_irrigation === "Non").length;
+  const pourcentageIrrigation = totalAnalyses > 0 ? Math.round((irrigationOui / totalAnalyses) * 100) : 0;
 
   // Vérification de l'authentification au chargement
   useEffect(() => {
@@ -73,10 +67,8 @@ const Prediction = () => {
       setUserData(parsedUser);
       console.log('Utilisateur connecté:', parsedUser.email);
       
-      // Charger l'historique et stats au démarrage
-      loadUserHistory();
-      loadUserStats();
-      
+      // Charger l'historique au démarrage
+      loadUserPredictions();
     } catch (error) {
       console.log('Erreur parsing user data');
       localStorage.removeItem('authToken');
@@ -86,81 +78,46 @@ const Prediction = () => {
   }, [navigate]);
 
   // Fonction pour charger l'historique depuis la base de données
-  const loadUserHistory = async () => {
-    setHistoriqueLoading(true);
+  const loadUserPredictions = async () => {
+    setIsHistoryLoading(true);
     try {
       const token = localStorage.getItem('authToken');
       
-      const response = await fetch("http://localhost:5000/api/get-my-predictions", {
-        method: "GET",
-        headers: {
-          "Authorization": `Bearer ${token}`,
-          "Content-Type": "application/json"
-        }
-      });
-      
-      const data = await response.json();
-      
-      if (data.success && data.predictions) {
-        // Transformation pour correspondre à l'ancien format
-        const transformedHistory = data.predictions.map(pred => ({
-          id: pred._id,
-          date: pred.date_prediction.split('T')[0],
-          azote: pred.azote_n,
-          phosphore: pred.phosphore_p,
-          potassium: pred.potassium_k,
-          temperature: pred.temperature_celsius,
-          humidite: pred.humidite_pourcentage,
-          ph: pred.ph_sol,
-          pluieMensuelle: pred.pluie_mensuelle_mm,
-          pluieAnnuelle: pred.pluie_annuelle_mm,
-          besoinIrrigation: pred.besoin_irrigation.includes("Oui") ? "Oui" : "Non",
-          cultureRecommandee: pred.culture_recommandee
-        }));
-        
-        setHistorique(transformedHistory);
-        console.log(`Historique chargé: ${transformedHistory.length} prédictions`);
-      } else {
-        console.log('Aucun historique trouvé');
-        setHistorique([]);
+      if (!token) {
+        console.log('Token manquant');
+        return;
       }
-      
-    } catch (error) {
-      console.error('Erreur chargement historique:', error);
-      setHistorique([]);
-    } finally {
-      setHistoriqueLoading(false);
-    }
-  };
 
-  // Fonction pour charger les statistiques utilisateur
-  const loadUserStats = async () => {
-    try {
-      const token = localStorage.getItem('authToken');
-      const user = JSON.parse(localStorage.getItem('userData'));
-      
-      const response = await fetch(`http://localhost:5000/api/stats/${user.id}`, {
+      const response = await fetch("http://localhost:5000/api/get-user-predictions", {
         method: "GET",
         headers: {
           "Authorization": `Bearer ${token}`,
           "Content-Type": "application/json"
-        }
+        },
       });
-      
+
+      if (response.status === 401) {
+        console.log('Token expiré');
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('userData');
+        navigate('/login');
+        return;
+      }
+
       const data = await response.json();
       
-      if (data.success && data.stats) {
-        setUserStats({
-          totalAnalyses: data.stats.total_predictions,
-          irrigationOui: data.stats.irrigation_oui,
-          irrigationNon: data.stats.irrigation_non,
-          pourcentageIrrigation: data.stats.pourcentage_irrigation
-        });
-        console.log('Statistiques chargées:', data.stats);
+      if (data.success) {
+        setHistorique(data.predictions || []);
+        console.log(`Historique chargé: ${data.predictions.length} prédictions`);
+      } else {
+        console.error('Erreur chargement historique:', data.error);
+        setHistorique([]); // En cas d'erreur, garder un tableau vide
       }
-      
     } catch (error) {
-      console.error('Erreur chargement statistiques:', error);
+      console.error('Erreur réseau historique:', error);
+      setHistorique([]); // En cas d'erreur, garder un tableau vide
+    } finally {
+      setIsHistoryLoading(false);
     }
   };
 
@@ -169,58 +126,69 @@ const Prediction = () => {
     setActiveSection(section);
     console.log('Section changée vers:', section);
     
-    // Recharger les données si nécessaire
+    // Recharger l'historique si on va sur cette section
     if (section === 'historique') {
-      loadUserHistory();
-      loadUserStats();
+      loadUserPredictions();
     }
-  };
+  }; 
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   // Fonction pour supprimer une entrée de l'historique
-  const handleDelete = async (id) => {
+  const handleDelete = async (predictionId) => {
     try {
       const token = localStorage.getItem('authToken');
       
-      const response = await fetch(`http://localhost:5000/api/delete-prediction/${id}`, {
+      if (!token) {
+        console.log('Token manquant pour suppression');
+        return;
+      }
+
+      const response = await fetch(`http://localhost:5000/api/delete-prediction/${predictionId}`, {
         method: "DELETE",
         headers: {
           "Authorization": `Bearer ${token}`,
           "Content-Type": "application/json"
-        }
+        },
       });
-      
+
+      if (response.status === 401) {
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('userData');
+        navigate('/login');
+        return;
+      }
+
       const data = await response.json();
       
       if (data.success) {
-        // Supprimer de l'état local
-        setHistorique(prev => prev.filter(item => item.id !== id));
-        console.log('Entrée supprimée:', id);
-        
-        // Recharger les statistiques
-        loadUserStats();
+        // Recharger l'historique après suppression
+        loadUserPredictions();
+        console.log('Entrée supprimée avec succès');
       } else {
         console.error('Erreur suppression:', data.error);
       }
-      
     } catch (error) {
-      console.error('Erreur suppression:', error);
+      console.error('Erreur réseau suppression:', error);
     }
   };
 
-  // Fonction pour obtenir les détails de la culture
+  // Fonction pour obtenir les détails de la culture - CORRIGÉE
   const getCropDetails = (cropName) => {
+    // VÉRIFICATION CRUCIALE pour éviter l'erreur
+    if (!cropName || typeof cropName !== 'string') {
+      return { 
+        icon: faSeedling, 
+        emoji: '🌱', 
+        color: '#4caf50',
+        description: 'Culture à déterminer'
+      };
+    }
+
     const cropData = {
       'pomme': { 
-        icon: faAppleAlt, 
-        emoji: '🍎', 
-        color: '#ff6b6b',
-        description: 'Culture fruitière adaptée aux climats tempérés'
-      },
-      'apple': { 
         icon: faAppleAlt, 
         emoji: '🍎', 
         color: '#ff6b6b',
@@ -256,24 +224,6 @@ const Prediction = () => {
         color: '#ffeb3b',
         description: 'Céréale énergétique'
       },
-      'maize': { 
-        icon: faSeedling, 
-        emoji: '🌽', 
-        color: '#ffeb3b',
-        description: 'Céréale énergétique'
-      },
-      'rice': { 
-        icon: faBreadSlice, 
-        emoji: '🍚', 
-        color: '#ffc107',
-        description: 'Céréale de base asiatique'
-      },
-      'banana': { 
-        icon: faLeaf, 
-        emoji: '🍌', 
-        color: '#ffeb3b',
-        description: 'Fruit tropical nutritif'
-      },
       'salade': { 
         icon: faLeaf, 
         emoji: '🥬', 
@@ -297,6 +247,45 @@ const Prediction = () => {
     };
   };
 
+  // Fonction pour sauvegarder une prédiction dans la base
+  const savePredictionToDatabase = async (irrigationPrediction, cropPrediction) => {
+    try {
+      const token = localStorage.getItem('authToken');
+      
+      if (!token) {
+        console.log('Token manquant pour sauvegarde');
+        return;
+      }
+
+      const saveData = {
+        ...formData,
+        irrigation_prediction: irrigationPrediction,
+        crop_recommendation: cropPrediction
+      };
+
+      const response = await fetch("http://localhost:5000/api/save-prediction", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(saveData),
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        console.log('Prédiction sauvegardée:', data.prediction_id);
+        // Recharger l'historique après sauvegarde
+        loadUserPredictions();
+      } else {
+        console.error('Erreur sauvegarde:', data.error);
+      }
+    } catch (error) {
+      console.error('Erreur réseau sauvegarde:', error);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
@@ -305,8 +294,6 @@ const Prediction = () => {
     setErrorMsg(null);
     setCropErrorMsg(null);
     setGeminiErrorMsg(null);
-    setSavedToDB(false);
-    setPredictionId(null);
     
     try {
       const token = localStorage.getItem('authToken');
@@ -317,11 +304,14 @@ const Prediction = () => {
         return;
       }
        
-      console.log('Envoi de la prédiction complète...');
+      console.log('Envoi de la prédiction...');
       
-      // 🚀 NOUVELLE APPROCHE: Utiliser l'endpoint combiné
+      let irrigationPrediction = null;
+      let cropPrediction = null;
+      
+      // Appel pour la prédiction d'irrigation
       try {
-        const response = await fetch("http://localhost:5000/api/complete-prediction", {
+        const irrigationResponse = await fetch("http://localhost:5000/api/predict", {
           method: "POST",
           headers: { 
             "Content-Type": "application/json",
@@ -330,9 +320,9 @@ const Prediction = () => {
           body: JSON.stringify(formData),
         });
         
-        const data = await response.json();
+        const irrigationData = await irrigationResponse.json();
         
-        if (response.status === 401) {
+        if (irrigationResponse.status === 401) {
           setErrorMsg("Session expirée, veuillez vous reconnecter");
           localStorage.removeItem('authToken');
           localStorage.removeItem('userData');
@@ -340,40 +330,59 @@ const Prediction = () => {
           return;
         }
         
-        if (data.success) {
-          // Traitement des résultats
-          setPrediction(data.irrigation_prediction);
-          setCropRecommendation(data.crop_recommendation);
-          setSavedToDB(data.saved_to_db);
-          setPredictionId(data.prediction_id);
-          
-          console.log('Prédiction complète reçue:', {
-            irrigation: data.irrigation_prediction,
-            crop: data.crop_recommendation,
-            saved: data.saved_to_db,
-            id: data.prediction_id
-          });
-          
-          // Recharger l'historique si sauvegardé
-          if (data.saved_to_db) {
-            setTimeout(() => {
-              loadUserHistory();
-              loadUserStats();
-            }, 500);
-          }
-          
+        if (irrigationData.success && irrigationData.prediction) {
+          setPrediction(irrigationData.prediction);
+          irrigationPrediction = irrigationData.prediction;
+          console.log('Prédiction irrigation reçue:', irrigationData.prediction);
         } else {
-          setErrorMsg(data.error || "Erreur lors de la prédiction");
-          console.log('Erreur prédiction complète:', data.error);
+          setPrediction(null);
+          setErrorMsg(irrigationData.error || "Erreur serveur irrigation");
+          console.log('Erreur prédiction irrigation:', irrigationData.error);
         }
         
       } catch (error) {
-        setErrorMsg("Erreur de connexion au serveur");
-        console.error('Erreur prédiction complète:', error);
+        setPrediction(null);
+        setErrorMsg("Erreur lors de la prédiction d'irrigation");
+        console.error('Erreur prédiction irrigation:', error);
+      }
+      
+      // Appel pour la recommandation de culture
+      try {
+        const cropResponse = await fetch("http://localhost:5000/api/crop-recommendation", {
+          method: "POST",
+          headers: { 
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+          },
+          body: JSON.stringify(formData),
+        });
+        
+        if (cropResponse.status === 404) {
+          setCropErrorMsg("Service de recommandation de culture temporairement indisponible");
+          setCropRecommendation(null);
+          console.log('Endpoint crop-recommendation non trouvé (404)');
+        } else {
+          const cropData = await cropResponse.json();
+          
+          if (cropData.success && cropData.crop) {
+            setCropRecommendation(cropData.crop);
+            cropPrediction = cropData.crop;
+            console.log('Recommandation culture reçue:', cropData.crop);
+          } else {
+            setCropRecommendation(null);
+            setCropErrorMsg(cropData.error || "Erreur recommandation culture");
+            console.log('Erreur recommandation culture:', cropData.error);
+          }
+        }
+        
+      } catch (error) {
+        setCropRecommendation(null);
+        setCropErrorMsg("Service de recommandation de culture indisponible");
+        console.error('Erreur recommandation culture:', error);
       }
 
-      // Appel pour les conseils Gemini LLM (séparément)
-      if (prediction || cropRecommendation) {
+      // Appel pour les conseils Gemini LLM
+      if (irrigationPrediction || cropPrediction) {
         setIsGeminiLoading(true);
         try {
           const geminiResponse = await fetch("http://localhost:5000/api/gemini-advice", {
@@ -384,10 +393,10 @@ const Prediction = () => {
             },
             body: JSON.stringify({
               formData: formData,
-              irrigationPrediction: prediction,
-              cropRecommendation: cropRecommendation
+              irrigationPrediction: irrigationPrediction,
+              cropRecommendation: cropPrediction
             }),
-          });
+          }); 
           
           const geminiData = await geminiResponse.json();
           
@@ -407,6 +416,11 @@ const Prediction = () => {
         } finally {
           setIsGeminiLoading(false);
         }
+      }
+
+      // SAUVEGARDER dans la base de données si au moins une prédiction a réussi
+      if (irrigationPrediction || cropPrediction) {
+        await savePredictionToDatabase(irrigationPrediction, cropPrediction);
       }
       
     } catch (error) {
@@ -433,7 +447,7 @@ const Prediction = () => {
   const infoCards = [
     { title: "IA Avancée", text: "Algorithme d'apprentissage automatique", icon: faBrain },
     { title: "Précision", text: "Analyse multi-paramètres précise", icon: faLeaf },
-    { title: "Sauvegarde", text: "Historique automatiquement sauvegardé", icon: faDatabase },
+    { title: "Économies", text: "Optimisation des ressources en eau", icon: faSave },
     { title: "Temps Réel", text: "Prédictions instantanées", icon: faClock },
   ];
 
@@ -445,7 +459,15 @@ const Prediction = () => {
           <div className="prediction-content-section">
             <div className="prediction-section-header">
               <h2>📊 Historique des Prédictions</h2>
-              <p>Consultez vos analyses sauvegardées dans la base de données MongoDB</p>
+              <p>Consultez vos analyses précédentes et les statistiques détaillées</p>
+              <button 
+                onClick={loadUserPredictions} 
+                className="prediction-refresh-btn"
+                disabled={isHistoryLoading}
+              >
+                <FontAwesomeIcon icon={faSync} spin={isHistoryLoading} />
+                {isHistoryLoading ? 'Actualisation...' : 'Actualiser'}
+              </button>
             </div>
 
             {/* Cartes de statistiques */}
@@ -455,9 +477,8 @@ const Prediction = () => {
                   <FontAwesomeIcon icon={faCalculator} />
                 </div>
                 <div className="prediction-stats-content">
-                  <h3>{userStats.totalAnalyses}</h3>
+                  <h3>{totalAnalyses}</h3>
                   <p>Total des Analyses</p>
-                  <small>Sauvegardées en base</small>
                 </div>
               </div>
 
@@ -466,44 +487,53 @@ const Prediction = () => {
                   <FontAwesomeIcon icon={faDroplet} />
                 </div>
                 <div className="prediction-stats-content">
-                  <h3>{userStats.irrigationOui}</h3>
-                  <p>Besoin d'Irrigation</p>
-                  <small>{userStats.pourcentageIrrigation}% des analyses</small>
+                  <h3>{irrigationOui}</h3>   
+                  <p>Besoin d'Irrigation</p> 
+                  <small>{pourcentageIrrigation}% des analyses</small>
                 </div>
               </div>
 
               <div className="prediction-stats-card prediction-stats-no-irrigation">
                 <div className="prediction-stats-icon">
                   <FontAwesomeIcon icon={faSeedling} />
-                </div>
+                </div>  
                 <div className="prediction-stats-content">
-                  <h3>{userStats.irrigationNon}</h3>
+                  <h3>{irrigationNon}</h3>
                   <p>Pas d'Irrigation</p>
-                  <small>{100 - userStats.pourcentageIrrigation}% des analyses</small>
+                  <small>{100 - pourcentageIrrigation}% des analyses</small>
                 </div>
               </div>
 
               <div className="prediction-stats-card prediction-stats-date">
                 <div className="prediction-stats-icon">
-                  <FontAwesomeIcon icon={faDatabase} />
+                  <FontAwesomeIcon icon={faCalendarAlt} />
                 </div>
                 <div className="prediction-stats-content">
-                  <h3>MongoDB</h3>
-                  <p>Base de Données</p>
-                  <small>Synchronisé automatiquement</small>
+                  <h3>{historique.length > 0 ? historique[0].date : 'N/A'}</h3>
+                  <p>Dernière Analyse</p>
+                  <small>Analyse la plus récente</small>
                 </div>
-              </div>
+              </div> 
             </div>
 
             {/* Tableau historique */}
             <div className="prediction-history-table-container">
               <div className="prediction-table-header">
-                <h3>📋 Historique Complet MongoDB</h3>
-                <p>Toutes vos prédictions sauvegardées automatiquement</p>
-                {historiqueLoading && <span>🔄 Chargement...</span>}
+                <h3>📋 Détail des Analyses Complètes</h3>
+                <p>Toutes vos prédictions agricoles avec données complètes</p>
               </div>
 
-              {historique && historique.length > 0 ? (
+              {isHistoryLoading ? (
+                <div className="prediction-loading-container">
+                  <div className="prediction-result-card">
+                    <div className="prediction-result-icon">⏳</div>
+                    <div className="prediction-result-text">Chargement de l'historique...</div>
+                    <div className="prediction-result-description">
+                      Récupération des données depuis la base de données.
+                    </div>
+                  </div>
+                </div>
+              ) : historique && historique.length > 0 ? (
                 <div className="prediction-table-wrapper">
                   <table className="prediction-history-table">
                     <thead>
@@ -537,25 +567,25 @@ const Prediction = () => {
                           <td><span className="prediction-value">{item.temperature}</span></td>
                           <td><span className="prediction-value">{item.humidite}</span></td>
                           <td><span className="prediction-value">{item.ph}</span></td>
-                          <td><span className="prediction-value">{item.pluieMensuelle}</span></td>
-                          <td><span className="prediction-value">{item.pluieAnnuelle}</span></td>
+                          <td><span className="prediction-value">{item.pluie_mensuelle}</span></td>
+                          <td><span className="prediction-value">{item.pluie_annuelle}</span></td>
                           <td>
-                            <span className={`prediction-irrigation-badge ${item.besoinIrrigation === "Oui" ? "prediction-irrigation-yes" : "prediction-irrigation-no"}`}>
-                              <FontAwesomeIcon icon={item.besoinIrrigation === "Oui" ? faDroplet : faSeedling} />
-                              {item.besoinIrrigation}
+                            <span className={`prediction-irrigation-badge ${item.besoin_irrigation === "Oui" ? "prediction-irrigation-yes" : "prediction-irrigation-no"}`}>
+                              <FontAwesomeIcon icon={item.besoin_irrigation === "Oui" ? faDroplet : faSeedling} />
+                              {item.besoin_irrigation}
                             </span>
                           </td>
                           <td>
                             <span className="prediction-crop-badge">
-                              {getCropDetails(item.cultureRecommandee).emoji}
-                              {item.cultureRecommandee}
+                              {getCropDetails(item.culture_recommandee || "").emoji}
+                              {item.culture_recommandee || "Non définie"}
                             </span>
                           </td>
                           <td>
                             <button
                               onClick={() => handleDelete(item.id)}
                               className="prediction-delete-btn"
-                              title="Supprimer de MongoDB"
+                              title="Supprimer cette entrée"
                             >
                               <FontAwesomeIcon icon={faTrash} />
                               Supprimer
@@ -568,10 +598,10 @@ const Prediction = () => {
                 </div>
               ) : (
                 <div className="prediction-placeholder-card">
-                  <FontAwesomeIcon icon={faDatabase} className="prediction-placeholder-icon"/>
-                  <h3>Aucune prédiction sauvegardée</h3>
-                  <p>Effectuez votre première analyse pour voir les données MongoDB ici.</p>
-                  <p>Les prédictions sont automatiquement sauvegardées lors des analyses.</p>
+                  <FontAwesomeIcon icon={faChartLine} className="prediction-placeholder-icon"/>
+                  <h3>Historique vide</h3>
+                  <p>Vous n'avez encore aucune prédiction enregistrée.</p>
+                  <p>Effectuez votre première analyse pour voir les données ici.</p>
                 </div>
               )}
             </div>
@@ -593,9 +623,8 @@ const Prediction = () => {
                   <div className="prediction-user-info">
                     <p><strong>Email:</strong> {userData.email}</p>
                     <p><strong>Nom:</strong> {userData.name || 'Non renseigné'}</p>
-                    <p><strong>Analyses effectuées:</strong> {userStats.totalAnalyses}</p>
+                    <p><strong>Analyses effectuées:</strong> {totalAnalyses}</p>
                     <p><strong>Dernière connexion:</strong> {new Date().toLocaleDateString()}</p>
-                    <p><strong>Données sauvegardées:</strong> MongoDB</p>
                   </div>
                 )}
                 <p>Paramètres et informations du profil à venir.</p>
@@ -614,17 +643,8 @@ const Prediction = () => {
                   <FontAwesomeIcon icon={faSeedling}/> Analyse Agricole Intelligente
                 </h2>
                 <p className="prediction-form-subtitle">
-                  Entrez les paramètres pour obtenir des recommandations avec sauvegarde automatique MongoDB
+                  Entrez les paramètres pour obtenir des recommandations d'irrigation, de culture et des conseils IA
                 </p>
-                
-                {/* Indicateur de sauvegarde */}
-                {savedToDB && predictionId && (
-                  <div className="prediction-save-success">
-                    <FontAwesomeIcon icon={faCheckCircle} />
-                    <span>Prédiction sauvegardée automatiquement (ID: {predictionId.substring(0, 8)}...)</span>
-                  </div>
-                )}
-                
                 <form onSubmit={handleSubmit} className="prediction-form-grid">
                   {fields.map(field => (
                     <div key={field.name} className="prediction-form-group">
@@ -646,7 +666,7 @@ const Prediction = () => {
                   ))}
                   <button type="submit" className="prediction-submit-btn" disabled={isLoading}>
                     <FontAwesomeIcon icon={faMagic}/> 
-                    {isLoading ? 'Analyse & Sauvegarde...' : 'Analyser avec Sauvegarde'}
+                    {isLoading ? 'Analyse en cours...' : 'Analyser avec IA'}
                   </button>
                 </form>
 
@@ -666,7 +686,7 @@ const Prediction = () => {
             {/* Section Résultats au milieu */}
             <div className="prediction-results-section">
               <h2 className="prediction-results-title">
-                <FontAwesomeIcon icon={faChartLine}/> Résultats ML + MongoDB
+                <FontAwesomeIcon icon={faChartLine}/> Résultats ML
               </h2>
 
               {isLoading ? (
@@ -675,7 +695,7 @@ const Prediction = () => {
                     <div className="prediction-result-icon">⏳</div>
                     <div className="prediction-result-text">Analyse en cours...</div>
                     <div className="prediction-result-description">
-                      Prédiction ML + sauvegarde automatique MongoDB
+                      Veuillez patienter pendant l'analyse des données.
                     </div>
                   </div>
                 </div>
@@ -704,19 +724,13 @@ const Prediction = () => {
                               "Votre culture nécessite un arrosage." : 
                               "Pas besoin d'irrigation supplémentaire."}
                           </div>
-                          {savedToDB && (
-                            <div className="prediction-save-indicator">
-                              <FontAwesomeIcon icon={faDatabase} />
-                              <span>Sauvegardé en MongoDB</span>
-                            </div>
-                          )}
                         </div>
                       ) : (
                         <div className="prediction-result-card">
                           <div className="prediction-result-icon">🤖</div>
                           <div className="prediction-result-text">En attente d'analyse</div>
                           <div className="prediction-result-description">
-                            Remplissez le formulaire pour une analyse avec sauvegarde automatique.
+                            Remplissez le formulaire pour obtenir une recommandation.
                           </div>
                         </div>
                       )}
@@ -749,12 +763,6 @@ const Prediction = () => {
                           <div className="prediction-crop-badge">
                             ✅ Culture optimale pour vos conditions
                           </div>
-                          {savedToDB && (
-                            <div className="prediction-save-indicator">
-                              <FontAwesomeIcon icon={faDatabase} />
-                              <span>Sauvegardé en MongoDB</span>
-                            </div>
-                          )}
                         </div>
                       ) : (
                         <div className="prediction-result-card">
@@ -850,5 +858,5 @@ const Prediction = () => {
     </div>     
   );
 };
-
-export default Prediction;   
+ 
+export default Prediction;  

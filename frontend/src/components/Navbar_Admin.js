@@ -15,23 +15,23 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="navbar">
+    <nav className="navbar"> 
       <div className="navbar-container">
         {/* Logo Section */}
         <div className="navbar-logo">
-          <FontAwesomeIcon icon={faSeedling} className="navbar-logo-icon"/>
-          <span className="navbar-logo-text">AgriPredict</span>
-        </div>
-
-        {/* Navigation Links */}
-        <div className="navbar-menu">
-            
-          <Link to="/Prediction" className="navbar-link">Accueil</Link>
+          <FontAwesomeIcon icon={faSeedling} className="navbar-logo-icon"/> 
+          <span className="navbar-logo-text">AgriPredict</span>   
+        </div> 
+                                           
+        {/* Navigation Links */}  
+        <div className="navbar-menu">   
+          <Link to="/Historique" className="navbar-link">Historique</Link> 
+          <Link to="/GestionAgriculteurs" className="navbar-link">Gestion des Agriculteurs</Link>
           <Link to="/clients" className="navbar-link">Clients</Link>
           <Link to="/add-client" className="navbar-link">Ajouter Client</Link>
-          <Link to="/about" className="navbar-link">À propos</Link>
-          <Link to="/contact" className="navbar-link">Contact</Link>
-                
+          <Link to="/about" className="navbar-link">À propos</Link> 
+           
+          
           
           {/* Logout Button */}
           <button className="navbar-logout-btn" onClick={handleLogout}>

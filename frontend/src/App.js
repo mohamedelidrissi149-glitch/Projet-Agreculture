@@ -1,24 +1,26 @@
-import React from 'react';
+import React from 'react'; 
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Prediction from './pages/Prediction';
 import AdminClients from './pages/AdminClients';
-    
-
-function App() {
+import HistoriquePredictionsTotal from './pages/HistoriquePredictionsTotal'; // Ajout de l'import
+          
+function App() { 
   return (
-    <Router>  
+    <Router>   
       <Routes>
-        <Route path="/" element={<Login />} /> 
+        <Route path="/" element={<Login />} />   
         <Route path="/login" element={<Login />} /> 
         <Route path="/register" element={<Register />} />
         <Route path="/Prediction" element={<Prediction />} /> 
         <Route path="/AdminClients" element={<AdminClients />} />
-      </Routes> 
-    </Router> 
-  );
+        <Route path="/Historique" element={<HistoriquePredictionsTotal />} /> {/* Nouvelle route */}   
+        <Route path="/GestionAgriculteurs" element={<AdminClients />} />   
+        <Route path="/Prediction" element={<Prediction />} /> 
+      </Routes>     
+    </Router>   
+  );    
 }  
-   
-export default App;
-  
+      
+export default App;   

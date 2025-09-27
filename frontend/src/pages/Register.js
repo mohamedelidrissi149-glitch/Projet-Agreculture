@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import './Register.css';
-
+ 
 const Register = () => {
   const [formData, setFormData] = useState({
     nom: '',
@@ -9,10 +9,10 @@ const Register = () => {
     ville: '',
     pays: '',
     codePostal: '',
-    password: '',
+    password: '', 
     confirmPassword: ''
   });
-  
+     
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);

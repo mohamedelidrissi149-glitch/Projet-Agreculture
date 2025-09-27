@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import Navbar from '../components/Navbar';    
+import Navbar from '../components/Navbar_Admin';    
 import Footer from '../components/Footer';          
 import './AdminClients.css';     
-
+ 
 const AdminClients = () => {  
   const [clients, setClients] = useState([]);
   const [showModal, setShowModal] = useState(false);
@@ -10,7 +10,7 @@ const AdminClients = () => {
   const [selectedClient, setSelectedClient] = useState(null);
   const [formData, setFormData] = useState({ 
     nom: '', 
-    prenom: '', 
+    prenom: '',  
     email: '',
     ville: '', 
     pays: '',
@@ -542,4 +542,4 @@ const AdminClients = () => {
   );    
 };
  
-export default AdminClients; 
+export default AdminClients;  
