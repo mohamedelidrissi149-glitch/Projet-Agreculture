@@ -30,7 +30,7 @@ node_modules/
 # =========================
 # DATASETS & MODELS
 # =========================
-model_data/datasets/*.csv
+model_data/datasets/*.csv 
 model_data/models/*.pkl 
 model_data/model-label/*.pkl
 
