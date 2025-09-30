@@ -2,23 +2,23 @@ import React, { useState, useEffect } from "react";
 import "./Prediction.css"; // import du CSS
 import Navbar from "../components/Navbar"; // Import du Navbar
 import Footer from "../components/Footer"; // Import du Footer
-import SidebarClient from "../components/SidebarClient"; // Import du nouveau Sidebar
+import SidebarClient from "../components/SidebarClient"; // Import du nouveau Sidebar  
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { 
+import {  
   faFlask, faVial, faAtom, faThermometerHalf, faTint, faBalanceScale, 
   faCloudRain, faUmbrella, faSeedling, faMagic, faChartLine, faBrain, 
   faLeaf, faSave, faClock, faExclamationTriangle, faAppleAlt, faCarrot, 
   faPepperHot, faBreadSlice, faRobot, faLightbulb, faComments, faUser,
-  faTrash, faDroplet, faCalculator, faCalendarAlt, faSync
-} from '@fortawesome/free-solid-svg-icons';
+  faTrash, faDroplet, faCalculator, faCalendarAlt, faSync 
+} from '@fortawesome/free-solid-svg-icons'; 
 import { useNavigate } from 'react-router-dom';
-import axios from "axios";
-
-const Prediction = () => { 
-  const [formData, setFormData] = useState({
-    Nitrogen: "",
-    phosphorous: "",
-    Potassium: "",
+import axios from "axios"; 
+ 
+const Prediction = () => {   
+  const [formData, setFormData] = useState({  
+    Nitrogen: "",  
+    phosphorous: "", 
+    Potassium: "", 
     temperature: "", 
     humidity: "",
     ph: "",

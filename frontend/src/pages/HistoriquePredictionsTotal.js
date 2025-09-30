@@ -6,7 +6,7 @@ const HistoriquePredictionsTotal = () => {
   const [historique, setHistorique] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const [predictionsPerPage] = useState(10);
+  const [predictionsPerPage] = useState(10); 
   const [loading, setLoading] = useState(true);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteType, setDeleteType] = useState('');
@@ -28,7 +28,7 @@ const HistoriquePredictionsTotal = () => {
           setHistorique(result.data);
           console.log(`✅ ${result.data.length} prédictions chargées`);
         } else {
-          console.error('❌ Erreur API:', result.error);
+          console.error('❌ Erreur API:', result.error); 
           setHistorique([]);
         }
       } catch (error) {
@@ -212,7 +212,7 @@ const HistoriquePredictionsTotal = () => {
         </div>
 
         {/* Table */}
-        {loading ? (
+        {loading ? ( 
           <div className="loading-container">
             <div className="loading-spinner">🔄</div>
             <p>Chargement de l'historique des prédictions...</p>
@@ -222,8 +222,7 @@ const HistoriquePredictionsTotal = () => {
             <table className="predictions-table">
               <thead>
                 <tr>
-                  <th>Email Agriculteur</th>
-                  <th>Nom Agriculteur</th>
+                  <th>Email Agriculteur</th> 
                   <th>Azote (N)</th>
                   <th>Phosphore (P)</th>
                   <th>Potassium (K)</th>
@@ -249,10 +248,9 @@ const HistoriquePredictionsTotal = () => {
                   currentPredictions.map((prediction, index) => (
                     <tr key={`${prediction.email_agriculteur}-${prediction.azote}-${prediction.phosphore}-${index}`} 
                         className={index % 2 === 0 ? 'even' : 'odd'}>
-                      <td>{prediction.email_agriculteur}</td>
-                      <td>{prediction.nom_agriculteur}</td>
+                      <td>{prediction.email_agriculteur}</td> 
                       <td>{prediction.azote}</td>
-                      <td>{prediction.phosphore}</td>
+                      <td>{prediction.phosphore}</td> 
                       <td>{prediction.potassium}</td>
                       <td>{prediction.temperature_celsius}°C</td>
                       <td>{prediction.humidite_pourcentage}%</td>
@@ -262,7 +260,7 @@ const HistoriquePredictionsTotal = () => {
                       <td>{prediction.besoin_irrigation.includes('Oui') ? '💧 Oui' : '🚫 Non'}</td>
                       <td>{formatCulture(prediction.culture_recommandee)}</td>
                       <td>{formatDate(prediction.date_prediction)}</td>
-                      <td>
+                      <td>    
                         <button 
                           onClick={() => openDeleteModal('single', prediction)}
                           className="btn-delete"

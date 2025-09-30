@@ -129,11 +129,11 @@
   
   .navbar-menu {
     margin-top: 10px;
-    flex-wrap: wrap;
+    flex-wrap: wrap; 
     justify-content: center;
     gap: 10px;
-  }
-  
+  } 
+    
   .navbar-link {
     font-size: 13px;
     padding: 5px 10px;

@@ -23,24 +23,24 @@ const Navbar = () => {
           <span className="navbar-logo-text">AgriPredict</span>
         </div>
 
-        {/* Navigation Links */}
+        {/* Navigation Links */}  
         <div className="navbar-menu">
-            
-          <Link to="/Prediction" className="navbar-link">Accueil</Link>
-          <Link to="/clients" className="navbar-link">Clients</Link>
-          <Link to="/add-client" className="navbar-link">Ajouter Client</Link>
-          <Link to="/about" className="navbar-link">À propos</Link>
-          <Link to="/contact" className="navbar-link">Contact</Link>
                 
+          <Link to="" className="navbar-link">Accueil</Link>
+          <Link to="" className="navbar-link">Clients</Link>
+          <Link to="" className="navbar-link">Ajouter Client</Link>
+          <Link to="" className="navbar-link">À propos</Link>  
+          <Link to="" className="navbar-link">Contact</Link>
+                   
           
-          {/* Logout Button */}
+          {/* Logout Button */} 
           <button className="navbar-logout-btn" onClick={handleLogout}>
             <FontAwesomeIcon icon={faSignOutAlt} />
             Déconnexion
           </button>
         </div>
-      </div>
-    </nav>
+      </div>   
+    </nav> 
   );
 };
 

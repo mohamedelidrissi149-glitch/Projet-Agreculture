@@ -3,9 +3,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSeedling, faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
 import './Navbar.css';
-
+  
 const Navbar = () => {
-  const navigate = useNavigate();
+  const navigate = useNavigate(); 
   
   const handleLogout = () => {
     localStorage.removeItem('authToken');
@@ -22,13 +22,13 @@ const Navbar = () => {
           <FontAwesomeIcon icon={faSeedling} className="navbar-logo-icon"/> 
           <span className="navbar-logo-text">AgriPredict</span>   
         </div> 
-                                           
+                                              
         {/* Navigation Links */}  
         <div className="navbar-menu">   
           <Link to="/Historique" className="navbar-link">Historique</Link> 
           <Link to="/GestionAgriculteurs" className="navbar-link">Gestion des Agriculteurs</Link>
           <Link to="/clients" className="navbar-link">Clients</Link>
-          <Link to="/add-client" className="navbar-link">Ajouter Client</Link>
+          <Link to="/admin/create-agriculteur" className="navbar-link">Ajouter Agriculteur</Link> 
           <Link to="/about" className="navbar-link">À propos</Link> 
            
           
@@ -38,7 +38,7 @@ const Navbar = () => {
             <FontAwesomeIcon icon={faSignOutAlt} />
             Déconnexion
           </button>
-        </div>
+        </div> 
       </div>
     </nav>
   );
