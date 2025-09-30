@@ -58,7 +58,7 @@ Tu es un expert agronome AI. Analyse ces données agricoles et génère des cons
    - Actions prioritaires cette semaine
 
 Réponds de manière concise, pratique et directement applicable. Maximum 400 mots. parale badrija de manier simple  
-"""
+""" 
 
     try:
         # Initialiser le modèle Gemini

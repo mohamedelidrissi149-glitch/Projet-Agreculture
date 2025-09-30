@@ -45,8 +45,8 @@ if admin_check:
     print(f"Vérification mot de passe '{test_password}': {'✅ VALIDE' if is_valid else '❌ INVALIDE'}")
     
     print(f"\\n📋 Informations de connexion:")
-    print(f"Email: admin@gmail.com")
-    print(f"Mot de passe: admin123")
-    print(f"Rôle: {admin_check['role']}")
+    print(f"Email: admin@gmail.com") 
+    print(f"Mot de passe: admin123")  
+    print(f"Rôle: {admin_check['role']}")  
  
 db.close_connection() 

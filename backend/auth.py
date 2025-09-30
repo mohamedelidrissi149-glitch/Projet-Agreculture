@@ -42,8 +42,8 @@ def admin_required(f):
         if current_user.get('role') != 'admin':
             return jsonify({'success': False, 'message': 'Accès admin requis'}), 403
         return f(current_user, *args, **kwargs)
-    return token_required(decorated)
-
+    return token_required(decorated) 
+    
 # ----------------- ROUTES --------------------------------------------------------------
 @auth_bp.route('/login', methods=['POST', 'OPTIONS'])
 def login():
@@ -51,7 +51,7 @@ def login():
     if request.method == 'OPTIONS':
         return jsonify({'success': True}), 200
 
-    data = request.get_json()
+    data = request.get_json() 
     email = data.get('email', '').strip().lower()
     password = data.get('password', '')
 
@@ -68,8 +68,8 @@ def login():
     user_role = user.get('role', '').strip().lower()
     if user_role not in ['admin', 'user']:
         return jsonify({'success': False, 'message': 'Rôle utilisateur non autorisé'}), 403
-
-    payload = {
+   
+    payload = { 
         'user_id': str(user['_id']),
         'email': user['email'],
         'role': user_role,

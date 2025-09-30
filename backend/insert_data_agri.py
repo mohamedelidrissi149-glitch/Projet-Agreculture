@@ -4,8 +4,8 @@ from flask_cors import CORS, cross_origin
 from auth import token_required
 from db import Database
 from datetime import datetime
-import logging
-
+import logging 
+ 
 # Configuration logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -16,7 +16,7 @@ CORS(insert_agri_bp)
 
 # Instance de la base de données
 db = Database()
-
+ 
 @insert_agri_bp.route('/save-prediction', methods=['POST', 'OPTIONS'])
 @cross_origin()
 @token_required
@@ -105,7 +105,7 @@ def save_agricultural_prediction(current_user):
             return jsonify({
                 'success': False,
                 'error': 'Échec de la sauvegarde'
-            }), 500 
+            }), 500  
 
     except ValueError as e:
         return jsonify({
@@ -113,18 +113,18 @@ def save_agricultural_prediction(current_user):
             'error': f'Erreur de validation des données: {str(e)}'
         }), 400
     except Exception as e:
-        logger.error(f"Erreur sauvegarde prédiction: {str(e)}")
+        logger.error(f"Erreur sauvegarde prédiction: {str(e)}") 
         return jsonify({
             'success': False,
             'error': 'Erreur serveur lors de la sauvegarde'
-        }), 500
+        }), 500 
 
 
 @insert_agri_bp.route('/get-user-predictions', methods=['GET', 'OPTIONS'])
 @cross_origin()
 @token_required
 def get_user_predictions(current_user):
-    """
+    """ 
     Récupère l'historique des prédictions d'un agriculteur
     """
     try:
@@ -133,9 +133,9 @@ def get_user_predictions(current_user):
 
         predictions_collection = db.get_collection('predictions')
         if predictions_collection is None:
-            return jsonify({
-                'success': False, 
-                'error': 'Impossible d\'accéder à la base de données'
+            return jsonify({      
+                'success': False,   
+                'error': 'Impossible d\'accéder à la base de données' 
             }), 500
 
         # Recherche par email de l'utilisateur connecté

@@ -284,4 +284,4 @@ def test_insert():
 
     except Exception as e:
         print(f"❌ Erreur test-insert: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500 
+        return jsonify({"success": False, "error": str(e)}), 500  

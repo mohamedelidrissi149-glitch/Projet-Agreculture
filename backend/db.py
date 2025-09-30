@@ -4,8 +4,8 @@ import pymongo
 from datetime import datetime
 
 # Connexion globale pour réutiliser la même connexion
-_global_client = None
-_global_db = None
+_global_client = None 
+_global_db = None 
 
 class Database:
     def __init__(self, uri="mongodb://localhost:27017/", db_name="basejwt"):
@@ -28,9 +28,9 @@ class Database:
                 print(f"⚠️ Connexion globale invalide, recréation: {e}")
                 _global_client = None
                 _global_db = None
-
-        # Nouvelle connexion MongoDB
-        try:
+ 
+        # Nouvelle connexion MongoDB 
+        try: 
             self.client = MongoClient(
                 uri,
                 serverSelectionTimeoutMS=5000,  # 5 secondes
@@ -38,11 +38,11 @@ class Database:
                 socketTimeoutMS=10000,          # 10 secondes
                 maxPoolSize=20,                 # Pool de connexions
                 minPoolSize=5,
-                retryWrites=True
-            )
-            
+                retryWrites=True 
+            ) 
+             
             self.db = self.client[db_name]
-            
+             
             # Test de connexion
             self.client.admin.command('ping')
             print(f"✅ Nouvelle connexion MongoDB établie: '{db_name}'")
@@ -61,18 +61,18 @@ class Database:
 
     def _setup_collections(self):
         """Configuration automatique des collections et index"""
-        if self.db is None:
+        if self.db is None: 
             return
-            
-        try:
-            # Collection users
-            users = self.db['users']
-            try:
+              
+        try: 
+            # Collection users  
+            users = self.db['users']  
+            try:  
                 users.create_index("email", unique=True)
-                print("📋 Index unique sur 'email' configuré")
-            except Exception:
-                pass  # Index existe déjà
-
+                print("📋 Index unique sur 'email' configuré") 
+            except Exception: 
+                pass  # Index existe déjà 
+ 
             # Collection predictions
             predictions = self.db['predictions']
             try:
@@ -269,10 +269,10 @@ class Database:
             return {'success': False, 'error': str(e)}
 
     def close_connection(self):
-        """Fermeture de connexion - maintient le singleton"""  
+        """Fermeture de connexion - maintient le singleton"""   
         print("🔌 Connexion maintenue (pattern singleton)")    
-        # Ne ferme pas la connexion globale pour la réutiliser  
+        # Ne ferme pas la connexion globale pour la réutiliser    
 
     def __del__(self):
         """Destructeur - ne ferme pas la connexion globale""" 
-        pass         
+        pass                                                      

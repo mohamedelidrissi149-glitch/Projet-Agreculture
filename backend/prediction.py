@@ -75,11 +75,11 @@ def predict_irrigation_only(current_user):
     """Endpoint de prédiction d'irrigation seule"""
     try:
         if request.method == 'OPTIONS':
-            return jsonify({'success': True}), 200
-        data = request.get_json()
+            return jsonify({'success': True}), 200 
+        data = request.get_json() 
         if not data:
             return jsonify({'success': False, 'error': 'Aucune donnée fournie'}), 400
-
+          
         # Conversion des données
         try:
             input_data = np.array([
@@ -89,7 +89,7 @@ def predict_irrigation_only(current_user):
             ]).reshape(1, -1)
         except ValueError as e:
             return jsonify({'success': False, 'error': f'Valeur invalide: {e}'}), 400
-
+                 
         # Prédiction irrigation
         irrigation_prediction = "Non déterminée"
         if irrigation_model is not None:

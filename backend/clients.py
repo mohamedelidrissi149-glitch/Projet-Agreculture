@@ -251,4 +251,6 @@ def get_clients_stats():
         }), 500
   
 print("✅ Blueprint clients configuré avec 6 routes")      
-  
+    
+
+    

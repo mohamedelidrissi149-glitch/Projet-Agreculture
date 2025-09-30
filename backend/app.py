@@ -1,37 +1,54 @@
-# app.py
+# app.py - Version corrigée
 from flask import Flask, jsonify
 from flask_cors import CORS
 import traceback
-
-# Import des Blueprints
-try:
+ 
+# Import des Blueprints  
+try: 
     from register import register_bp
+    from CreationAccountAgriculteur import admin_agriculteur_bp 
     from auth import auth_bp 
     from clients import clients_bp
-    from prediction import prediction_bp      # Version avec sauvegarde (document 22)
-    from prompt_gemini import gemini_bp       # Version avec Gemini (document 21) 
+    from prediction import prediction_bp
+    from prompt_gemini import gemini_bp
     from insert_data_agri import insert_agri_bp
     from get_data_predict import get_data_bp
     print("✅ Tous les blueprints importés avec succès")
 except ImportError as e:
     print(f"❌ Erreur d'import blueprint: {e}")
     raise
-
+  
 app = Flask(__name__)
 app.url_map.strict_slashes = False
 
-# Configuration CORS simplifiée et efficace
+# Configuration CORS plus complète
 CORS(app, resources={
-    r"/api/*": {
-        "origins": ["http://localhost:3000", "http://127.0.0.1:3000"],
+    r"/*": {  # Changé de r"/api/*" à r"/*" pour couvrir toutes les routes
+        "origins": [
+            "http://localhost:3000", 
+            "http://127.0.0.1:3000",
+            "http://localhost:3001",  # Ajout de ports alternatifs
+            "http://127.0.0.1:3001"
+        ],
         "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-        "allow_headers": ["Content-Type", "Authorization"],
+        "allow_headers": [
+            "Content-Type", 
+            "Authorization", 
+            "X-Requested-With",
+            "Accept",
+            "Origin"
+        ],
         "supports_credentials": True
     }
 })
 
 # ----------------- ENREGISTREMENT DES BLUEPRINTS ----------------------------
 try:
+    # CORRECTION: Enregistrement du blueprint admin sans préfixe supplémentaire
+    # car le blueprint a déjà ses routes définies
+    app.register_blueprint(admin_agriculteur_bp, url_prefix='/api')
+    print("✅ Blueprint admin_agriculteur_bp enregistré sur /api")
+
     # Register
     app.register_blueprint(register_bp, url_prefix='/api/register')
     print("✅ Blueprint register_bp enregistré")
@@ -41,20 +58,18 @@ try:
     print("✅ Blueprint auth_bp enregistré")
     
     # Clients
-    app.register_blueprint(clients_bp)  # Supprimez le url_prefix
+    app.register_blueprint(clients_bp)
     print("✅ Blueprint clients_bp enregistré")
          
-    # Predictions (AVEC sauvegarde en base) - Document 22
-    # Ce blueprint a déjà son préfixe /api dans sa déclaration
+    # Predictions
     app.register_blueprint(prediction_bp)
-    print("✅ Blueprint prediction_bp enregistré (/predict, /crop-recommendation, /save-prediction, /get-user-predictions, /delete-prediction)")
+    print("✅ Blueprint prediction_bp enregistré")
     
-    # Gemini conseils - Document 21
-    # Ce blueprint n'a PAS de préfixe dans sa déclaration
+    # Gemini conseils
     app.register_blueprint(gemini_bp, url_prefix='/api')
-    print("✅ Blueprint gemini_bp enregistré (/gemini-advice)")
+    print("✅ Blueprint gemini_bp enregistré")
     
-    # Autres blueprints si nécessaires
+    # Autres blueprints
     app.register_blueprint(insert_agri_bp, url_prefix='/api')
     print("✅ Blueprint insert_agri_bp enregistré")
     
@@ -81,6 +96,11 @@ def home():
                 "register": "/api/register",
                 "login": "/api/auth/login",
                 "verify": "/api/auth/verify"
+            },
+            "admin": {
+                "create_agriculteur": "/api/admin/create-agriculteur",
+                "list_agriculteurs": "/api/admin/list-agriculteurs",
+                "stats_agriculteurs": "/api/admin/stats-agriculteurs"
             },
             "clients": {
                 "list": "/api/clients",
@@ -116,13 +136,13 @@ def health_check():
             "status": "OK", 
             "message": "API fonctionne correctement",
             "database": db_status,
-            "timestamp": "2025-09-26"
+            "timestamp": "2025-09-27"
         })
     except Exception as e:
         return jsonify({
             "status": "ERROR",
             "message": f"Erreur health check: {str(e)}",
-            "timestamp": "2025-09-26"
+            "timestamp": "2025-09-27"
         }), 500
 
 @app.route('/api/test-connection')
@@ -154,13 +174,29 @@ def test_connection():
             "error": str(e)
         }), 500
 
+# Route pour lister toutes les routes (debug)
+@app.route('/api/routes')
+def list_routes():
+    """Lister toutes les routes disponibles (pour debug)"""
+    routes = []
+    for rule in app.url_map.iter_rules():
+        routes.append({
+            'endpoint': rule.endpoint,
+            'methods': list(rule.methods),
+            'rule': str(rule)
+        })
+    return jsonify({
+        'total_routes': len(routes),
+        'routes': sorted(routes, key=lambda x: x['rule'])
+    })
+
 # ----------------- GESTION D'ERREURS -----------------
 @app.errorhandler(404)
 def not_found(error):
     return jsonify({
         "error": "Route non trouvée",
         "message": "L'endpoint demandé n'existe pas",
-        "available_endpoints": "Consultez / pour la liste complète"
+        "available_endpoints": "Consultez /api/routes pour la liste complète"
     }), 404
 
 @app.errorhandler(500)
@@ -184,13 +220,12 @@ if __name__ == '__main__':
     print("🌐 Endpoints disponibles:")
     print(f"   - API Root: http://localhost:5000/") 
     print(f"   - Health Check: http://localhost:5000/api/health")
+    print(f"   - Routes Debug: http://localhost:5000/api/routes")
+    print(f"   - Admin Create: http://localhost:5000/api/admin/create-agriculteur")
+    print(f"   - Admin List: http://localhost:5000/api/admin/list-agriculteurs")
     print(f"   - Prédictions: http://localhost:5000/api/predict")
-    print(f"   - Cultures: http://localhost:5000/api/crop-recommendation")
-    print(f"   - Conseils IA: http://localhost:5000/api/gemini-advice")
-    print(f"   - Sauvegarde: http://localhost:5000/api/save-prediction")
-    print(f"   - Historique: http://localhost:5000/api/get-user-predictions")
-    print("=" * 60)
-        
+    print("=" * 60) 
+          
     try:
         app.run(debug=True, host='0.0.0.0', port=5000)
     except Exception as e:
